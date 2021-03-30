@@ -31,6 +31,9 @@ Also, a storage account must already be created. Using this tool it is assumed t
 
 :white_check_mark:7.0.4
 
+# Usage
+```powershell: .\path\to\macoslobapptool.ps1```
+
 # GUI
 ![GUI](https://user-images.githubusercontent.com/78877636/113025035-bea48e80-9187-11eb-8bce-4ac878dfe447.png)
 
