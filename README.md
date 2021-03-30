@@ -2,7 +2,8 @@
 This tool is designed to manage macOS apps that cannot be distributed via MEM as a .intunemac file.
 Instead of wrapping the application, the .pkg or .dmg is uploaded to an Azure storage blob and a shell script
 is created in MEM. When the script runs on a mac, it curls the package from the blob and if it's a DMG, mounts
-and installs or if it's a PKG, installs directly.
+and installs or if it's a PKG, installs directly. The blob downloads to the currently logged on users Downloads folder.
+After install is complete, the package is removed from Downloads.
 
 A metadata tag is added to the blob with the format "Version: {CFBundleShortVersion}" to keep track of uploaded versions.
 
