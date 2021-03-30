@@ -12,6 +12,8 @@ from the Info.plist file, it is also possible to enter the version manually.
 Per default, the install location is set to /Applications. If needed this can be changed. This path is needed to detect if
 the latest version of the app is already installed on the mac.
 
+Before using, keep in mind that this is an early version of this tool. Test **thoroughly**. 
+
 ## Planned features
 - Ability to assign app from the WPF
 - Handle updating apps from WPF
@@ -33,6 +35,7 @@ Also, a storage account must already be created. Using this tool it is assumed t
 
 # Screenshots
 ## App selection
+Only apps with CFBundleShortVersion and Install Path are uploaded.
 ![image](https://user-images.githubusercontent.com/78877636/113021659-18a35500-9184-11eb-9a7c-3842ca39f023.png)
 ## Console output
 ![image](https://user-images.githubusercontent.com/78877636/113022000-6fa92a00-9184-11eb-8257-3509aaf64e0f.png)
