@@ -31,7 +31,7 @@ Also, a storage account must already be created. Using this tool it is assumed t
 
 :white_check_mark:7.0.4
 
-:X:5.X
+:x:5.X
 
 # Usage
 Before use, you might have to unblock the files.
