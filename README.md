@@ -21,4 +21,5 @@ Also, a storage account must already be created. Using this tool it is assumed t
 
 ## Verified Powershell versions
 :white_check_mark:7.1.3
+
 :white_check_mark:7.0.4
