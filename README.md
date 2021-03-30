@@ -14,8 +14,8 @@ the latest version of the app is already installed on the mac.
 
 ## Pre-requisites
 To use this tool you need a couple of moduels installed
--Az.Storage
--Microsoft.Graph.Authentication
+- Az.Storage
+- Microsoft.Graph.Authentication
 
 Also, a storage account must already be created. Using this tool it is assumed that the container is publicly available.
 
