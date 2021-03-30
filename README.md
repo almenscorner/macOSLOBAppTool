@@ -23,3 +23,13 @@ Also, a storage account must already be created. Using this tool it is assumed t
 :white_check_mark:7.1.3
 
 :white_check_mark:7.0.4
+
+# Screenshots
+## App selection
+![image](https://user-images.githubusercontent.com/78877636/113021659-18a35500-9184-11eb-9a7c-3842ca39f023.png)
+## Console output
+![image](https://user-images.githubusercontent.com/78877636/113022000-6fa92a00-9184-11eb-8257-3509aaf64e0f.png)
+## Azure blob
+![image](https://user-images.githubusercontent.com/78877636/113022390-d75f7500-9184-11eb-8f2f-9dff4403213a.png)
+## MEM Shell script
+![image](https://user-images.githubusercontent.com/78877636/113022608-12fa3f00-9185-11eb-973e-99f7f4df46e0.png)
