@@ -58,7 +58,7 @@ if [[ `ls -l $installLocation/$shortName*.app` ]]; then
 		#If package is a PKG-file, install the package
 		
 		if [[ $packageName == *.pkg ]]; then
-			sudo installer -package "${WORKDIR}/${packageName}.pkg" -target "/Volumes/Macintosh HD"
+			sudo installer -package ${WORKDIR}/${packageName} -target "/Volumes/Macintosh HD"
 		fi
 		
 		rm -rf ${WORKDIR}/${packageName}	
