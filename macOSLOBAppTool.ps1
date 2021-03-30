@@ -48,7 +48,7 @@ $inputXML = @"
     xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d"
-    Title="macOS LOB App" Height="450" Width="800">
+    Title="macOS LOB App Tool" Height="450" Width="800">
 
     <Window.Resources>
         <ResourceDictionary>
