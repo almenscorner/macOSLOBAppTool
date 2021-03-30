@@ -12,6 +12,10 @@ from the Info.plist file, it is also possible to enter the version manually.
 Per default, the install location is set to /Applications. If needed this can be changed. This path is needed to detect if
 the latest version of the app is already installed on the mac.
 
+## Planned features
+- Ability to assign app from the WPF
+- Handle updating apps from WPF
+
 ## Pre-requisites
 To use this tool you need a couple of moduels installed
 - Az.Storage
