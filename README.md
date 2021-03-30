@@ -26,10 +26,12 @@ To use this tool you need a couple of moduels installed
 
 Also, a storage account must already be created. Using this tool it is assumed that the container is publicly available.
 
-## Verified Powershell versions
+## Powershell versions
 :white_check_mark:7.1.3
 
 :white_check_mark:7.0.4
+
+:X:5.X
 
 # Usage
 Before use, you might have to unblock the files.
