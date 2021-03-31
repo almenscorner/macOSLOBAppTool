@@ -18,6 +18,7 @@ Before using, keep in mind that this is an early version of this tool. Test **th
 ## Planned features
 - Ability to assign app from the WPF
 - Handle updating apps from WPF
+- Get CFBundleShortVersion from .pkg packages using 7-zip
 
 ## Pre-requisites
 To use this tool you need a couple of moduels installed
