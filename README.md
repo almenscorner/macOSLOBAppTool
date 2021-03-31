@@ -27,11 +27,11 @@ To use this tool you need a couple of moduels installed
 Also, a storage account must already be created. Using this tool it is assumed that the container is publicly available.
 
 ## Powershell versions
-:white_check_mark:7.1.3
+:white_check_mark: 7.1.3
 
-:white_check_mark:7.0.4
+:white_check_mark: 7.0.4
 
-:x:5.X
+:x: 5.X
 
 # Usage
 Before use, you might have to unblock the files.
@@ -52,6 +52,3 @@ Only apps with CFBundleShortVersion and Install Path are uploaded.
 ![image](https://user-images.githubusercontent.com/78877636/113022390-d75f7500-9184-11eb-8f2f-9dff4403213a.png)
 ## MEM Shell script
 ![image](https://user-images.githubusercontent.com/78877636/113022608-12fa3f00-9185-11eb-973e-99f7f4df46e0.png)
-
-# Disclaimer
-This code and information are provided "AS IS" without warranty of any kind, either expressed or implied. The entire risk arising out of the use or performance of the script and documentation remains with you. Furthermore, the author shall not be liable for any damages you may sustain by using this information, whether direct, indirect, special, incidental or consequential, including, without limitation, damages for loss of business profits, business interruption, loss of business information or other pecuniary loss even if it has been advised of the possibility of such damages. Read all the implementation and usage notes thoroughly.
