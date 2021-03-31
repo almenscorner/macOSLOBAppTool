@@ -33,28 +33,28 @@ Also, a storage account must already be created. Using this tool it is assumed t
 
 :x: 5.X
 
-# Usage
+## Usage
 Before use, you might have to unblock the files.
 
 Launch the script by typing:
 ```.\path\to\macoslobapptool.ps1```
 
-# GUI
+## GUI
 ![GUI](https://user-images.githubusercontent.com/78877636/113025035-bea48e80-9187-11eb-8bce-4ac878dfe447.png)
 
-# Screenshots
-## App selection
+## Screenshots
+### App selection
 Only apps with CFBundleShortVersion and Install Path are uploaded.
 ![image](https://user-images.githubusercontent.com/78877636/113021659-18a35500-9184-11eb-9a7c-3842ca39f023.png)
-## Console output
+### Console output
 ![image](https://user-images.githubusercontent.com/78877636/113022000-6fa92a00-9184-11eb-8257-3509aaf64e0f.png)
-## Azure blob
+### Azure blob
 ![image](https://user-images.githubusercontent.com/78877636/113022390-d75f7500-9184-11eb-8f2f-9dff4403213a.png)
-## MEM Shell script
+### MEM Shell script
 ![image](https://user-images.githubusercontent.com/78877636/113022608-12fa3f00-9185-11eb-973e-99f7f4df46e0.png)
 
-# Changelog
-## 1.01 2021-03-31
+## Changelog
+### 1.01 2021-03-31
 - Removed script frequency, the script now only executes **one** time on devices
-## 1.0 2021-03-30
+### 1.0 2021-03-30
 - Initial release
