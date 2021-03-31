@@ -54,7 +54,7 @@ Only apps with CFBundleShortVersion and Install Path are uploaded.
 ![image](https://user-images.githubusercontent.com/78877636/113022608-12fa3f00-9185-11eb-973e-99f7f4df46e0.png)
 
 ## Changelog
-### 1.01 2021-03-31
+**1.01 2021-03-31**
 - Removed script frequency, the script now only executes **one** time on devices
-### 1.0 2021-03-30
+**1.0 2021-03-30**
 - Initial release
