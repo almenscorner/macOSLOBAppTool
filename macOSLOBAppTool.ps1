@@ -1,12 +1,5 @@
 <#
 
-    ##DISCLAIMER:This code and information are provided "AS IS" without warranty of any kind, either expressed or implied. 
-                 The entire risk arising out of the use or performance of the script and documentation remains with you. 
-                 Furthermore, the author shall not be liable for any damages you may sustain by using this information, whether direct, 
-                 indirect, special, incidental or consequential, including, without limitation, damages for loss of business profits, 
-                 business interruption, loss of business information or other pecuniary loss even if it has been advised 
-                 of the possibility of such damages. Read all the implementation and usage notes thoroughly.
-
     .SYNOPSIS
         WPF GUI tool to manage macOS LOB apps in MEM.
         Created by: Tobias Almen
@@ -522,7 +515,6 @@ $WPFaddpackage.Add_Click({
                     Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
                     $RequestBodyObject = @{
                         "@odata.type" = "#microsoft.graph.deviceShellScript"
-                        executionFrequency = "PT1H"
                         retryCount = 3
                         blockExecutionNotifications = $false
                         displayName = $scriptName
