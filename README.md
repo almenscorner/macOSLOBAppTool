@@ -16,9 +16,9 @@ the latest version of the app is already installed on the mac.
 Before using, keep in mind that this is an early version of this tool. Test **thoroughly**. 
 
 ## Planned features
-- Ability to assign app from the WPF
+- ~~Ability to assign app from the WPF~~
 - Handle updating apps from WPF
-- Get CFBundleShortVersion from .pkg packages using 7-zip
+- ~~Get CFBundleShortVersion from .pkg packages using 7-zip~~
 
 ## Pre-requisites
 To use this tool you need a couple of moduels installed
@@ -55,7 +55,14 @@ Only apps with CFBundleShortVersion and Install Path are uploaded.
 ![image](https://user-images.githubusercontent.com/78877636/113022608-12fa3f00-9185-11eb-973e-99f7f4df46e0.png)
 
 ## Changelog
-**Version 1.01 2021-03-31**
+**Version 1.04.01.01 2021-03-31**
+- Added function to assign packages
+- The tool now tries to extract CFBundleShortVersion from .PKGs
+- Removed the dependecy of 7z.exe in script folder, it now snags the path to the EXE from registry
+- Added button to GitHub repo to the top
+- Added twitter icon with @handle to the top
+
+**Version 1.03.31.01 2021-03-31**
 - Removed script frequency, the script now only executes **one** time on devices
 
 **Version 1.0 2021-03-30**
