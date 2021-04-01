@@ -54,6 +54,9 @@ Only apps with CFBundleShortVersion and Install Path are uploaded.
 ### MEM Shell script
 ![image](https://user-images.githubusercontent.com/78877636/113022608-12fa3f00-9185-11eb-973e-99f7f4df46e0.png)
 
+## Limitations
+- DMGs that contains an installer.app is not supported. Have not figured out how an install of these types of installers would work from a script.
+
 ## Changelog
 **Version 1.04.01.01 2021-04-01**
 - Added function to assign packages
