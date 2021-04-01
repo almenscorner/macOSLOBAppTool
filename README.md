@@ -1,13 +1,17 @@
 # macOSLOBAppTool
-This tool is designed to manage macOS apps that cannot be distributed via MEM as a .intunemac file.
-Instead of wrapping the application, the .pkg or .dmg is uploaded to an Azure storage blob and a shell script
-is created in MEM. When the script runs on a mac, it curls the package from the blob and if it's a DMG, mounts
-and installs or if it's a PKG, installs directly. The blob downloads to the currently logged on users Downloads folder.
-After install is complete, the package is removed from Downloads.
+**Background**
+This tool is designed to manage macOS apps that cannot be distributed via MEM when wrapped as an .intunemac file. There are a number of limitations using the wrapping method, some of them being that only .pkg files are supported and that we have to rely on the MDM framework in macOS to detect the app. Only apps installed to /Applications can be detected with this method and the app must have a very sepcific structure to be detected. If the app does not include specific parameters your only option is to ask the developer to change this.
+
+If you have a .dmg package you would like to publish in MEM, you would have to convert this to a .pkg. When doing this you must have a Apple Developer certificate to sign your converted app.
+
+**Solution**
+With the above limitations in mind I decided to build a tool which can deploy virtually any app using the Microsoft Intune Agent to run scripts and Azure Storage Account to build a app repository.
+
+When running the tool, the app won't be wrapped but instead uploads to an Azure blob and a macOS shell script is created in MEM. When the script runs on a mac, it curls the package from the blob and if it's a DMG, mounts and installs or if it's a PKG, installs directly. The blob downloads to the currently logged on users Downloads folder. After the installation is complete, the package is removed from Downloads.
 
 A metadata tag is added to the blob with the format "Version: {CFBundleShortVersion}" to keep track of uploaded versions.
 
-If 7-zip is installed on the device running this WPF, the script will try to automatically extract the CFBundleShortVersion
+If 7-zip is installed on the device running this tool, the script will try to automatically extract the CFBundleShortVersion
 from the Info.plist file, it is also possible to enter the version manually.
 
 Per default, the install location is set to /Applications. If needed this can be changed. This path and CFBundleShortVersion is needed to detect if
