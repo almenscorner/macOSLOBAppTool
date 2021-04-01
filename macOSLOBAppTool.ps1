@@ -1,5 +1,4 @@
 <#
-
     .SYNOPSIS
         WPF GUI tool to manage macOS LOB apps in MEM.
         Created by: Tobias Almen
@@ -9,20 +8,14 @@
         Instead of wrapping the application, the .pkg or .dmg is uploaded to an Azure storage blob and a shell script
         is created in MEM. When the script runs on a mac, it curls the package from the blob and if it's a DMG, mounts
         and installs or if it's a PKG, installs directly.
-
         A metadata tag is added to the blob with the format "Version: {CFBundleShortVersion}" to keep track of uploaded versions.
-
         If 7-zip is installed on the device running this WPF the script will try to automatically extract the CFBundleShortVersion
         from the Info.plist file, it is also possible to enter the version manually.
-
         Per default, the install location is set to /Applications. If needed this can be changed. This path is needed to detect if
         the latest version of the app is already installed on the mac.
-
         It's assumed that the container on the storage account is publicly available.
-
     .LINK
         https://github.com/almenscorner/macOSLOBAppTool
-
 #>  
 
 #===========================================================================
@@ -47,6 +40,7 @@ $inputXML = @"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+    xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d"
     Title="macOS LOB App Tool" Height="450" Width="800">
@@ -62,7 +56,20 @@ $inputXML = @"
           </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Window.Resources>
-
+    <mah:MetroWindow.LeftWindowCommands>
+    <mah:WindowCommands>
+       <Button Name="Github" ToolTip="Open GitHub site">
+          <StackPanel Orientation="Horizontal">
+             <iconPacks:PackIconModern Kind="SocialGithubOctocat"/>
+          </StackPanel>
+        </Button>
+        <Button Name="Twitter" ToolTip="Almens Twitter - @almenscorner">
+          <StackPanel Orientation="Horizontal">
+             <iconPacks:PackIconModern Kind="SocialTwitter"/>
+          </StackPanel>
+        </Button>
+        </mah:WindowCommands>
+    </mah:MetroWindow.LeftWindowCommands>
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="49*"/>
@@ -74,6 +81,7 @@ $inputXML = @"
         <Button x:Name="removepackage" Content="Remove Package" Grid.Column="1" HorizontalAlignment="Left" Margin="100,10,0,0" VerticalAlignment="Top"/>
         <DataGrid x:Name="grid" Grid.ColumnSpan="2" Margin="10,48,39,32" AutoGenerateColumns="False">
             <DataGrid.Columns>
+                <DataGridTextColumn Header="Assign to" Binding="{Binding AssignTo}" Width="100" Visibility="Hidden"/>
                 <DataGridTextColumn Header="Package Name" Binding="{Binding PackageName}"/>
                 <DataGridTextColumn Header="CFBundleShortVersion" Binding="{Binding CFBundleShortVersion}" IsReadOnly="False"/>
                 <DataGridTextColumn Header="Install Path" Binding="{Binding InstallPath}" Width="180" IsReadOnly="False"/>
@@ -91,6 +99,10 @@ $inputXML = @"
         <TextBlock Grid.Column="2" HorizontalAlignment="Left" Margin="3,98,0,0" Text="Container name" TextWrapping="Wrap" VerticalAlignment="Top" Height="16" Width="84"/>
         <ComboBox x:Name="containerbox" Grid.Column="2" HorizontalAlignment="Left" Margin="3,119,0,0" VerticalAlignment="Top" Width="120" Height="22"/>
         <TextBlock HorizontalAlignment="Left" Margin="6,396,0,0" Text="Provided by almenscorner.io" TextWrapping="Wrap" VerticalAlignment="Top" Grid.ColumnSpan="2" Opacity="0.5"/>
+        <TextBlock Grid.Column="2" HorizontalAlignment="Left" Margin="157,98,0,0" Text="Assign to" TextWrapping="Wrap" VerticalAlignment="Top"/>
+        <TextBox x:Name="groupname" Grid.Column="2" HorizontalAlignment="Left" Margin="157,119,0,0" Text="" TextWrapping="Wrap" VerticalAlignment="Top" Width="81" Height="22"/>
+        <Button x:Name="searchgroup" Content="Search" Grid.Column="2" HorizontalAlignment="Left" Margin="238,119,0,0" VerticalAlignment="Top" Height="26"/>
+        <TextBlock x:Name="grouperror" Grid.Column="2" HorizontalAlignment="Left" Margin="157,147,0,0" Text="Could not find group" TextWrapping="Wrap" VerticalAlignment="Top" Foreground="#FFFB0000" Visibility="Hidden"/>
     </Grid>
 </mah:MetroWindow>
 "@ 
@@ -144,23 +156,57 @@ function Get-CFBundleShortVersion {
     $checkInstall = (gp HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*).DisplayName -Match "7-zip"
 
     if (!$checkInstall){
-        Write-Warning "7-zip is not installed, provide CFBundleShortVersion manually"
+        Write-Host -ForegroundColor Yellow "Warning: 7-zip is not installed, provide CFBundleShortVersion manually"
     }
 
     #If installed, get CFBundleShortVersion from package
     else {
-        $cmd = ".\7z.exe"
-        $params = "e $packagePath -o.\ *\*\Contents\Info.plist -y"
-        $params = $params.Split(" ")
-        & $cmd $params
-        if (test-path .\Info.plist -PathType Leaf){
-            $plistContent =  ($(Get-Content .\Info.plist -Raw) -split "<key>" | Where-Object {$_ -match 'CFBundleShortVersion'}).ToString()
-            $trimContent = $plistContent.Trim()
-            $vString = $trimContent.Split()
-            $version = $vString[2].Trim("<string>,</")
-            $Script:CFBundleVers = $version.ToString()
-            Remove-Item .\Info.plist -Force
+        #Get 7-zip install location
+        $7zipLocation = (gp HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*).InstallLocation -Match "7-zip"
+
+        #Check if package is a DMG
+        if($packagePath -like "*.dmg") {
+            #Set parameters and extract Info.plist
+            $cmd = "$7zipLocation\7z.exe"
+            $params = "e $packagePath -o.\ *\*\Contents\Info.plist -y"
+            $params = $params.Split(" ")
+            & $cmd $params > $null 2>&1
+            #Get version as string and delete Info.plist
+            if (test-path .\Info.plist -PathType Leaf){
+                $plistContent =  ($(Get-Content .\Info.plist -Raw) -split "<key>" | Where-Object {$_ -match 'CFBundleShortVersion'}).ToString()
+                $trimContent = $plistContent.Trim()
+                $vString = $trimContent.Split()
+                $version = $vString[2].Trim("<string>,</")
+                $Script:CFBundleVers = $version.ToString()
+                Remove-Item .\Info.plist -Force
+            }
         }
+
+        if ($packagePath -like "*.pkg") {
+            $cmd = "$7zipLocation\7z.exe"
+            #Set parameters and extract Payload~
+            $params = "e $packagePath -o.\ -y"
+            $params = $params.Split(" ")
+            & $cmd $params > $null 2>&1
+            #Set parameters and extract Info.plist
+            $params = "e .\Payload~ -o.\ *\*\*\Contents\Info.plist -y"
+            $params = $params.Split(" ")
+            & $cmd $params > $null 2>&1
+            #Get version as string and delete Info.plist and Payload~
+            if (test-path .\Info.plist -PathType Leaf){
+                $plistContent =  ($(Get-Content .\Info.plist -Raw) -split "<key>" | Where-Object {$_ -match 'CFBundleShortVersion'}).ToString()
+                $trimContent = $plistContent.Trim()
+                $vString = $trimContent.Split()
+                $version = $vString[2].Trim("<string>,</")
+                $Script:CFBundleVers = $version.ToString()
+                Remove-Item .\Info.plist -Force
+                Remove-Item .\Payload~ -Force
+            }
+        }
+    }
+
+    if (!$CFBundleVers){
+        Write-Host -ForegroundColor Yello "Warning: Unable to extract CFBundleShortVersion for $packagePath"
     }
 
 }
@@ -334,12 +380,14 @@ Select-MgProfile -Name beta
 $staccount = Get-AzStorageAccount
 $key = Get-AzStorageAccountKey -Name $staccount.StorageAccountName -ResourceGroupName $staccount.ResourceGroupName | select-object -First 1 -ExpandProperty Value
 $ctx = New-AzStorageContext -StorageAccountName $staccount.StorageAccountName -StorageAccountKey $key
+$containers = Get-AzStorageContainer -Context $ctx
 
 #===========================================================================
 # Disable buttons until folder is selected
 #===========================================================================
 $WPFaddpackage.IsEnabled = $false
 $WPFremovepackage.IsEnabled = $false
+$WPFsearchgroup.IsEnabled = $false
 
 #===========================================================================
 # Populate ComboBox with Storage Account, Resource Groups and Container
@@ -351,8 +399,6 @@ foreach ($account in $staccount.StorageAccountName){
 foreach ($rsgroup in $staccount.ResourceGroupName){
     $WPFrsgroupbox.Items.Add($rsgroup) | out-null
 }
-
-$containers = Get-AzStorageContainer -Context $ctx
 
 foreach ($container in $containers.Name){
     $WPFcontainerbox.Items.Add($container) | out-null
@@ -387,6 +433,7 @@ $WPFbutton.Add_Click({
 
     $WPFaddpackage.IsEnabled = $true
     $WPFremovepackage.IsEnabled = $true
+    $WPFsearchgroup.IsEnabled = $true
 
 })
 
@@ -402,6 +449,26 @@ $WPFremovepackage.Add_Click({
     $itemsArray.Remove($removeItem)
 
     $WPFgrid.ItemsSource = $itemsArray
+
+})
+
+#===========================================================================
+# Assign packages to group
+#===========================================================================
+$WPFsearchgroup.Add_Click({
+    $Script:group = Get-MgGroup -Filter "displayName eq '$($WPFgroupname.Text)'"
+    if ($group){
+        $WPFgrouperror.Visibility = "Hidden"
+        $WPFgrid.Columns[0].Visibility = "Visible"
+        $items = $WPFgrid.Items
+        [System.Collections.ArrayList]$itemsArray = @()
+        $itemsArray += $WPFgrid.ItemsSource
+        $itemsArray | Add-Member -MemberType NoteProperty -Name AssignTo -Value $group.DisplayName -force
+        $WPFgrid.ItemsSource = $itemsArray
+    }
+    else{
+        $WPFgrouperror.Visibility = "Visible"
+    }
 
 })
 
@@ -524,7 +591,7 @@ $WPFaddpackage.Add_Click({
 
                     $body = $RequestBodyObject | ConvertTo-Json
  
-                    $request = Invoke-MGGraphRequest -Method POST -Uri "https://graph.microsoft.com/beta/deviceManagement/deviceShellScripts" -Body $body -ContentType 'application/json'
+                    $newScriptRequest = Invoke-MGGraphRequest -Method POST -Uri "https://graph.microsoft.com/beta/deviceManagement/deviceShellScripts" -Body $body -ContentType 'application/json'
                     Remove-Item ".\Scripts\$scriptName" -Force
                 }
 
@@ -532,6 +599,35 @@ $WPFaddpackage.Add_Click({
                     Write-Host -ForegroundColor Yellow "Warning: Failed to add scripts to MEM"
                     break
                 }
+
+                try {
+                    if ($group){
+                        Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
+                        Write-Host -ForegroundColor DarkGray "Assigning $($item.PackageName) to group $($group.DisplayName)"
+                        Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
+                        
+                        $RequestBodyObject = @( 
+                            @{deviceManagementScriptAssignments =
+                                @( 
+                                    @{target = 
+                                        @{
+                                            '@odata.type' = "#microsoft.graph.groupAssignmentTarget";
+                                            groupId = $group.Id
+                                        }
+                                    }
+                                )
+                            }
+                        )
+
+                        $body = $RequestBodyObject | ConvertTo-Json -Depth 10
+                        Invoke-MGGraphRequest -Method POST -Uri "https://graph.microsoft.com/beta/deviceManagement/deviceShellScripts/$($newScriptRequest.id)/assign" -Body $body -ContentType 'application/json'
+                    }
+                }
+
+                catch{
+                    Write-Host -ForegroundColor Yellow "Warning: Failed to assign script"
+                }
+
 
             }            
 
