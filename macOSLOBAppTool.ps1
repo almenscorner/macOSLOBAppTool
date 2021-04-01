@@ -405,6 +405,13 @@ foreach ($container in $containers.Name){
 }
 
 #===========================================================================
+# Open GitHub repo button
+#=========================================================================== 
+$WPFGithub.Add_Click({
+    Start-Process -FilePath https://github.com/almenscorner/macoslobapptool
+})
+
+#===========================================================================
 # Select folder button action
 #===========================================================================                                             
 $WPFbutton.Add_Click({
