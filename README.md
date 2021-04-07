@@ -60,15 +60,16 @@ Before use, you might have to unblock the files.
 Launch the script by typing:
 ```.\path\to\macoslobapptool.ps1```
 
-## GUI
-![GUI](https://user-images.githubusercontent.com/78877636/113025035-bea48e80-9187-11eb-8bce-4ac878dfe447.png)
-
 ## Screenshots
-### App selection
-Only apps with CFBundleShortVersion and Install Path are uploaded.
-![image](https://user-images.githubusercontent.com/78877636/113021659-18a35500-9184-11eb-9a7c-3842ca39f023.png)
+### Light/Dark mode
+![mlatnewlight](https://user-images.githubusercontent.com/78877636/113880302-a9e57d80-97bb-11eb-9874-b5c690aff774.png)![mlatnewdark](https://user-images.githubusercontent.com/78877636/113880345-b4a01280-97bb-11eb-87bb-3ce2f1c2b828.png)
+![mlatupdatebadgelight](https://user-images.githubusercontent.com/78877636/113880666-f92bae00-97bb-11eb-98bc-e38d6f69e789.png)![mlatupdatedark](https://user-images.githubusercontent.com/78877636/113880700-fdf06200-97bb-11eb-9ee2-069902bc6dcf.png)
+### Badges
+![mlatuploadbadge](https://user-images.githubusercontent.com/78877636/113881134-6fc8ab80-97bc-11eb-884d-64b36469337a.png)![mlatupdatebadge](https://user-images.githubusercontent.com/78877636/113881148-748d5f80-97bc-11eb-9c4d-44e988ecd375.png)
+### Warning popup
+![mlatwarning](https://user-images.githubusercontent.com/78877636/113881202-840ca880-97bc-11eb-8ec5-db85c69d4c76.png)
 ### Console output
-![image](https://user-images.githubusercontent.com/78877636/113022000-6fa92a00-9184-11eb-8257-3509aaf64e0f.png)
+![mlatconsole](https://user-images.githubusercontent.com/78877636/113880740-0779ca00-97bc-11eb-9c2d-da0a71d53563.png)
 ### Azure blob
 ![image](https://user-images.githubusercontent.com/78877636/113022390-d75f7500-9184-11eb-8f2f-9dff4403213a.png)
 ### MEM Shell script
@@ -78,6 +79,16 @@ Only apps with CFBundleShortVersion and Install Path are uploaded.
 - DMGs that contains an installer.app is not supported. Have not figured out how an install of these types of installers would work from a script.
 
 ## Changelog
+**Version 1.04.07.01 2021-04-07**
+- Added update functionality
+- Added button badges when uploading/updating
+- New tabbed interface for uploading new packages and updating
+- Added popup messages for warnings (thanks [smsagent](https://smsagent.wordpress.com/2017/08/24/a-customisable-wpf-messagebox-for-powershell/))
+- Renamed Themes folder to Assembly
+- Added material icons and removed Octions
+- Updated shell script for installing apps to handle versions in format of X.X.X
+- Added dark theme switch, now you can upload/update in style 😎
+
 **Version 1.04.01.01 2021-04-01**
 - Added function to assign packages
 - The tool now tries to extract CFBundleShortVersion from .PKGs
