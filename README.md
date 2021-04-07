@@ -63,7 +63,7 @@ Launch the script by typing:
 ## Screenshots
 ### Light/Dark mode
 ![mlatnewlight](https://user-images.githubusercontent.com/78877636/113880302-a9e57d80-97bb-11eb-9874-b5c690aff774.png)![mlatnewdark](https://user-images.githubusercontent.com/78877636/113880345-b4a01280-97bb-11eb-87bb-3ce2f1c2b828.png)
-![mlatupdatebadgelight](https://user-images.githubusercontent.com/78877636/113880666-f92bae00-97bb-11eb-98bc-e38d6f69e789.png)![mlatupdatedark](https://user-images.githubusercontent.com/78877636/113880700-fdf06200-97bb-11eb-9ee2-069902bc6dcf.png)
+![mlatupdatelight](https://user-images.githubusercontent.com/78877636/113881566-d5b53300-97bc-11eb-9baa-092c4964a874.png)![mlatupdatedark](https://user-images.githubusercontent.com/78877636/113880700-fdf06200-97bb-11eb-9ee2-069902bc6dcf.png)
 ### Badges
 ![mlatuploadbadge](https://user-images.githubusercontent.com/78877636/113881134-6fc8ab80-97bc-11eb-884d-64b36469337a.png)![mlatupdatebadge](https://user-images.githubusercontent.com/78877636/113881148-748d5f80-97bc-11eb-9c4d-44e988ecd375.png)
 ### Warning popup
