@@ -27,9 +27,10 @@ if [[ `ls -l $installLocation/$shortName*.app` ]]; then
 					if (installedv >= cfbv)
 		          {print "Latest version already installed"}
 	        else
-		        {print "Update"}}')
+		        {print "Install"}}')
+		fi
 
-    if [[ $updateCheck == "Update" ]]; then
+    if [[ $updateCheck == "Install" || -z $updateCheck ]]; then
 
 		echo "Downloading ${packageName}"
 		curl -X GET -H "x-ms-date: $(date -u)" ${baseURL}/${container}/${packageName}${sasToken} --output ${WORKDIR}/${packageName}
@@ -68,4 +69,3 @@ if [[ `ls -l $installLocation/$shortName*.app` ]]; then
     else
         echo $updateCheck
     fi
-fi
