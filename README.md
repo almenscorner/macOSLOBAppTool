@@ -25,7 +25,7 @@ Before using, keep in mind that this is an early version of this tool. Test **th
 - [Pre-requisites](#pre-requisites)
 - [Powershell versions](#powershell-versions)
 - [Usage](#usage)
-- [GUI](#gui)
+- [In action](#in-action)
 - [Screenshots](#screenshots)
   * [App selection](#app-selection)
   * [Console output](#console-output)
@@ -59,6 +59,10 @@ Before use, you might have to unblock the files.
 
 Launch the script by typing:
 ```.\path\to\macoslobapptool.ps1```
+
+## In action
+![MLATupload](https://user-images.githubusercontent.com/78877636/114020893-5a14be00-9870-11eb-9b46-792426df44b2.gif)
+![macOSMLATinstall](https://user-images.githubusercontent.com/78877636/114020912-5e40db80-9870-11eb-8f22-a899143c9e01.gif)
 
 ## Screenshots
 ### Light/Dark mode
