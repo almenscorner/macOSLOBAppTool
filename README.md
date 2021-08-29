@@ -35,6 +35,7 @@ Before using, keep in mind that this is an early version of this tool. Test **th
 - [Changelog](#changelog)
 
 ## Planned features
+- Change install script to Microsoft's shell script for enhanced logging and functionality
 - ~~Ability to assign app from the WPF~~
 - ~~Handle updating apps from WPF~~
 - ~~Get CFBundleShortVersion from .pkg packages using 7-zip~~
