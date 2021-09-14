@@ -8,11 +8,10 @@
         Instead of wrapping the application, the .pkg or .dmg is uploaded to an Azure storage blob and a shell script
         is created in MEM. When the script runs on a mac, it curls the package from the blob and if it's a DMG, mounts
         and installs or if it's a PKG, installs directly.
-        A metadata tag is added to the blob with the format "Version: {CFBundleShortVersion}" to keep track of uploaded versions.
-        If 7-zip is installed on the device running this WPF the script will try to automatically extract the CFBundleShortVersion
-        from the Info.plist file, it is also possible to enter the version manually.
-        Per default, the install location is set to /Applications. If needed this can be changed. This path is needed to detect if
-        the latest version of the app is already installed on the mac.
+        7-zip must be installed since it's used to extarct the CFBundleName for the app
+        from the Info.plist file.
+        Per default, the processpath is set to /Applications. If needed this can be changed. This path is needed to detect if
+        the app is running if you set "terminateprocess" to true when updating an app.
         It's assumed that the container on the storage account is publicly available.
     .LINK
         https://github.com/almenscorner/macOSLOBAppTool
@@ -111,11 +110,13 @@ $inputXML = @"
                     <DataGrid x:Name="grid" Margin="7,41,0,27" AutoGenerateColumns="False" AlternationCount="2" AlternatingRowBackground="LightBlue" CanUserAddRows="false">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Assign to" Binding="{Binding AssignTo}" Width="100" Visibility="Hidden"/>
-                            <DataGridTextColumn Header="Package Name" Binding="{Binding PackageName}"/>
-                            <DataGridTextColumn Header="CFBundleShortVersion" Binding="{Binding CFBundleShortVersion}" IsReadOnly="False"/>
-                            <DataGridTextColumn Header="Install Path" Binding="{Binding InstallPath}" Width="180" IsReadOnly="False"/>
-                            <DataGridTextColumn Header="FullName" Binding="{Binding FullName}" Width="180" Visibility="Hidden"/>
-                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="180" Visibility="Hidden"/>
+                            <DataGridTextColumn Header="App Name" Binding="{Binding AppName}" IsReadOnly="False"/>
+                            <DataGridTextColumn Header="App" Binding="{Binding App}" IsReadOnly="False"/>
+                            <DataGridTextColumn Header="Process Path" Binding="{Binding ProcessPath}" Width="180" IsReadOnly="False"/>
+                            <DataGridTextColumn Header="Terminate Process" Binding="{Binding TerminateProcess}" IsReadOnly="False"/>
+                            <DataGridTextColumn Header="Autoupdate" Binding="{Binding Autoupdate}" IsReadOnly="False"/>
+                            <DataGridTextColumn Header="FullName" Binding="{Binding FullName}" Visibility="Hidden"/>
+                            <DataGridTextColumn Header="FileName" Binding="{Binding FileName}" Visibility="Hidden"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
@@ -134,18 +135,19 @@ $inputXML = @"
                     <DataGrid x:Name="updatepackagegrid" Margin="7,41,0,27" AutoGenerateColumns="False" CanUserAddRows="false">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Assign to" Binding="{Binding AssignTo}" Width="100" Visibility="Hidden"/>
-                            <DataGridTextColumn Header="Package Name" Binding="{Binding PackageName}"/>
-                            <DataGridTextColumn Header="CFBundleShortVersion" Binding="{Binding CFBundleShortVersion}" IsReadOnly="False"/>
-                            <DataGridTextColumn Header="Install Path" Binding="{Binding InstallPath}" Width="180" IsReadOnly="False"/>
-                            <DataGridTextColumn Header="FullName" Binding="{Binding FullName}" Width="180" Visibility="Hidden"/>
-                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="180" Visibility="Hidden"/>
+                            <DataGridTextColumn Header="App Name" Binding="{Binding AppName}" IsReadOnly="False"/>
+                            <DataGridTextColumn Header="App" Binding="{Binding App}" IsReadOnly="False"/>
+                            <DataGridTextColumn Header="Process Path" Binding="{Binding ProcessPath}" Width="180" IsReadOnly="False"/>
+                            <DataGridTextColumn Header="Terminate Process" Binding="{Binding TerminateProcess}" IsReadOnly="False"/>
+                            <DataGridTextColumn Header="Autoupdate" Binding="{Binding Autoupdate}" IsReadOnly="False"/>
+                            <DataGridTextColumn Header="FullName" Binding="{Binding FullName}" Visibility="Hidden"/>
+                            <DataGridTextColumn Header="FileName" Binding="{Binding FileName}" Visibility="Hidden"/>
                         </DataGrid.Columns>
                     </DataGrid>
                     <Button x:Name="getpackagesbutton" Content="Get packages" HorizontalAlignment="Left" Margin="7,134,0,0" VerticalAlignment="Top"/>
                     <ComboBox x:Name="packagesbox" HorizontalAlignment="Left" Margin="7,160,0,0" VerticalAlignment="Top" Width="134" Grid.ColumnSpan="2"/>
                     <TextBlock HorizontalAlignment="Left" Margin="7,114,0,0" Text="Select package to update" TextWrapping="Wrap" VerticalAlignment="Top" Grid.ColumnSpan="2"/>
-                    <CheckBox x:Name="unassigncheck" Content="Unassign only" HorizontalAlignment="Left" Margin="7,194,0,0" VerticalAlignment="Top" Grid.ColumnSpan="2"/>
-                    <CheckBox x:Name="removecheck" Content="Remove" HorizontalAlignment="Left" Margin="7,216,0,0" VerticalAlignment="Top" Grid.ColumnSpan="2"/>
+                    <CheckBox x:Name="removecheck" Content="Remove" HorizontalAlignment="Left" Margin="7,194,0,0" VerticalAlignment="Top" Grid.ColumnSpan="2"/>
                     <Button x:Name="updatebutton" HorizontalAlignment="Left" Margin="134,6,0,0" VerticalAlignment="Top">
                         <mah:Badged x:Name="Badge2" Content="UPDATE" Badge="{Binding Path=BadgeValue}" BadgePlacementMode="TopRight" BadgeBackground="Green"/>
                     </Button>
@@ -689,7 +691,7 @@ function Show-WarningMessage {
     New-WPFMessageBox -Content $StackPanel -Title "WARNING" -TitleFontSize 28 -TitleBackground Orange
 }
 
-function Get-CFBundleShortVersion {
+function Get-CFBundleName {
     param (
         $packagePath
     )
@@ -717,11 +719,12 @@ function Get-CFBundleShortVersion {
             & $cmd $params > $null 2>&1
             #Get version as string and delete Info.plist
             if (test-path .\Info.plist -PathType Leaf){
-                $plistContent =  ($(Get-Content .\Info.plist -Raw) -split "<key>" | Where-Object {$_ -match 'CFBundleShortVersion'}).ToString()
+                $plistContent =  ($(Get-Content .\Info.plist -Raw) -split "<key>" | Where-Object {$_ -match 'CFBundleName'}).ToString()
                 $trimContent = $plistContent.Trim()
-                $vString = $trimContent.Split()
-                $version = $vString[2].Trim("<string>,</")
-                $Script:CFBundleVers = $version.ToString()
+                $nameString = $trimContent.Split()
+                $nameString = $nameString.Trim() -ne ""
+                $name = $nameString[1].Replace('<string>', "").Replace('</string>', "")
+                $Script:CFBundleName = $name.ToString()
                 Remove-Item .\Info.plist -Force
             }
         }
@@ -738,19 +741,20 @@ function Get-CFBundleShortVersion {
             & $cmd $params > $null 2>&1
             #Get version as string and delete Info.plist and Payload~
             if (test-path .\Info.plist -PathType Leaf){
-                $plistContent =  ($(Get-Content .\Info.plist -Raw) -split "<key>" | Where-Object {$_ -match 'CFBundleShortVersion'}).ToString()
+                $plistContent =  ($(Get-Content .\Info.plist -Raw) -split "<key>" | Where-Object {$_ -match 'CFBundleName'}).ToString()
                 $trimContent = $plistContent.Trim()
-                $vString = $trimContent.Split()
-                $version = $vString[2].Trim("<string>,</")
-                $Script:CFBundleVers = $version.ToString()
+                $nameString = $trimContent.Split()
+                $nameString = $nameString.Trim() -ne ""
+                $name = $nameString[1].Replace('<string>', "").Replace('</string>', "")
+                $Script:CFBundleName = $name.ToString()
                 Remove-Item .\Info.plist -Force
                 Remove-Item .\Payload~ -Force
             }
         }
     }
 
-    if (!$CFBundleVers){
-        Write-Host -ForegroundColor Yellow "Unable to extract CFBundleShortVersion for $packagePath"
+    if (!$CFBundleName){
+        Write-Host -ForegroundColor Yellow "Unable to extract CFBundleName for $packagePath"
     }
 
 }
@@ -928,13 +932,32 @@ Import-Module Microsoft.Graph.Authentication | out-null
 
 Connect-AzAccount | out-null
 Connect-MGGraph -Scopes "DeviceManagementConfiguration.ReadWrite.All"
-Select-MgProfile -Name beta
+Select-MgProfile -Name "beta"
 
 $staccount = Get-AzStorageAccount
+
+if($staccount.count -gt 1){
+
+    for($i = 0; $i -lt $staccount.count; $i++)
+    {
+        Write-Host -ForegroundColor Cyan "$i`: $($staccount.StorageAccountName[$i])"
+    }
+    Write-Host -ForegroundColor Yellow "Which storagea account do you want to use to create context? (enter the index of the account)"
+    $sta = Read-Host
+
+    $key = Get-AzStorageAccountKey -Name $staccount.StorageAccountName[$sta] -ResourceGroupName $staccount.ResourceGroupName[$sta] | select-object -First 1 -ExpandProperty Value
+    $ctx = New-AzStorageContext -StorageAccountName $staccount.StorageAccountName[$sta] -StorageAccountKey $key
+    $containers = Get-AzStorageContainer -Context $ctx
+    $WPFsearchgroup.IsEnabled = $false
+
+}
+
+else{
 $key = Get-AzStorageAccountKey -Name $staccount.StorageAccountName -ResourceGroupName $staccount.ResourceGroupName | select-object -First 1 -ExpandProperty Value
 $ctx = New-AzStorageContext -StorageAccountName $staccount.StorageAccountName -StorageAccountKey $key
 $containers = Get-AzStorageContainer -Context $ctx
 $WPFsearchgroup.IsEnabled = $false
+}
 
 #--------------------------------------------------------------------------#
 # Theme switcher
@@ -1029,15 +1052,22 @@ $WPFbutton.Add_Click({
 
     foreach ($package in $packages){
         
-        Get-CFBundleShortVersion -packagePath $package.FullName
+        Get-CFBundleName -packagePath $package.FullName
 
-        if ($CFBundleVers){
-            $array = @([pscustomobject]@{PackageName=$package.Name;CFBundleShortVersion=$CFBundleVers;InstallPath="/Applications";FullName=$package.FullName})
+        if ($CFBundleName){
+            $array = @([pscustomobject]@{AppName=$CFBundleName; `
+                                         App="$($CFBundleName).app"; `
+                                         ProcessPath="/Applications/$($CFBundleName).app/Contents/MacOS/$($CFBundleName)"; `
+                                         TerminateProcess="false"; `
+                                         Autoupdate="false"; `
+                                         FullName=$package.FullName; `
+                                         FileName=$package.Name})
             $itemsArray += $array
         }
         else{
-            $array = @([pscustomobject]@{PackageName=$package.Name;CFBundleShortVersion="";InstallPath="/Applications";FullName=$package.FullName})
-            $itemsArray += $array
+            $message = "Unable to get CFBundleName for $($package.Name), skipping package"
+            Write-Host -ForegroundColor Yellow $message
+            Show-WarningMessage -Text $message
         }
     }
     
@@ -1085,49 +1115,59 @@ $WPFaddpackage.Add_Click({
         Write-Host -ForegroundColor DarkGray "Uploading packages"
         Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
         
-        foreach ($item in $WPFgrid.Items | where {$_.CFBundleShortVersion -and $_.InstallPath}){
+        foreach ($item in $WPFgrid.Items | where {$_.App -and $_.AppName -and $_.ProcessPath}){
 
-            $blob = Get-AzStorageBlob -Context $ctx -Blob $item.PackageName -Container $WPFcontainerbox.SelectedValue -ErrorAction SilentlyContinue
-            $blobVersion = $blob.ICloudBlob.Metadata.Version
+             $blob = Get-AzStorageBlob -Context $ctx -Blob $item.FileName -Container $WPFcontainerbox.SelectedValue -ErrorAction SilentlyContinue
         
-            if (($blobVersion) -and ($item.CFBundleShortVersion -ge $blobVersion)){
-                $message = "Latest version already exists for $($item.PackageName)"
-                Write-Host -ForegroundColor Yellow $message
-                Show-WarningMessage -Text $message
-            }
+             #Check if blob exists
+             if ($blob){
+                Write-Host -ForegroundColor Yellow "#-------------------------------------------------------------#"
+                Write-Host -ForegroundColor Yellow "Blob already exists for $($item.FileName), skipping"
+                Write-Host -ForegroundColor Yellow "#-------------------------------------------------------------#"
+             }
 
-            else {
+             else {
+
+                $staccboxValue = $WPFstaccbox.SelectedValue
+                $rsgroupboxValue = $WPFrsgroupbox.SelectedValue
+                $containerboxvalue = $WPFcontainerbox.SelectedValue
+                $fileName = $item.FullName
+                $blobName = $item.FileName
 
                 try {
-                    Add-JobTracker -Name "uploadLOB" `
-                        -JobScript {
+                        $JobScript = {
+                            param(
+                                $staccboxValue,
+                                $rsgroupboxValue,
+                                $containerboxvalue,
+                                $fileName,
+                                $blobName
+                            )
+                            
                             $key = Get-AzStorageAccountKey `
-                            -Name $using:WPFstaccbox.SelectedValue `
-                            -ResourceGroupName $using:WPFrsgroupbox.SelectedValue `
+                            -Name $staccboxValue `
+                            -ResourceGroupName $rsgroupboxValue `
                             | select-object -First 1 -ExpandProperty Value
                             $ctx = New-AzStorageContext `
-                            -StorageAccountName $using:WPFstaccbox.SelectedValue `
+                            -StorageAccountName $staccboxValue `
                             -StorageAccountKey $key
 
                             $ProgressPreference = "SilentlyContinue"
 
-                            $Metadata = @{"Version" = "$($using:item.CFBundleShortVersion)"}
-
                             $upload = Set-AzStorageBlobContent `
-                            -Container $using:WPFcontainerbox.SelectedValue `
-                            -File $using:item.FullName `
-                            -Blob $using:item.PackageName `
+                            -Container $containerboxvalue `
+                            -File $fileName `
+                            -Blob $blobName `
                             -Context $ctx `
-                            -Metadata $Metadata
                             
-                        }`
-                        -UpdateScript {
+                        }
+                        $UpdateScript = {
                             Param($Job)
                             $results = Receive-Job -Job $Job -Keep
                             $WPFBadge1.Badge = "Uploading"
                                 
-                        }`
-                        -CompletedScript {
+                        }
+                        $CompletedScript = {
                             Param($Job)
                             $results = Receive-Job -Job $Job
                             $WPFBadge1.Badge = $null
@@ -1136,6 +1176,12 @@ $WPFaddpackage.Add_Click({
                             Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
                                 
                         }
+
+                        Add-JobTracker -Name "UploadLOB" `
+                        -JobScript $JobScript `
+                        -UpdateScript $UpdateScript `
+                        -CompletedScript $CompletedScript `
+                        -ArgumentList $staccboxValue,$rsgroupboxValue,$containerboxvalue,$fileName,$blobName
                     }
 
                     catch{
@@ -1147,17 +1193,19 @@ $WPFaddpackage.Add_Click({
 
                 try {
                     Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
-                    Write-Host -ForegroundColor DarkGray "Adding install script parameters for $($item.PackageName)"
+                    Write-Host -ForegroundColor DarkGray "Adding install script parameters for $($item.AppName)"
                     Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
-                    $scriptName = "$($item.PackageName)-$($item.CFBundleShortVersion).sh"
+                    $scriptName = "MACLAT-install$($item.AppName).sh"
                     Copy-Item ".\Scripts\installapp.sh" ".\Scripts\$scriptName" | out-null
                     $scriptContent = Get-Content ".\Scripts\$scriptName" -raw
                             
-                    (($scriptContent) -replace 'baseURL=""', "baseURL=""https://$($WPFstaccbox.SelectedValue).blob.core.windows.net"" " `
-                                    -replace 'packageName=""', "packageName=""$($item.PackageName)"" " `
-                                    -replace 'CFBundleShortVersion=""', "CFBundleShortVersion=""$($item.CFBundleShortVersion)"" " `
-                                    -replace 'installLocation=""', "installLocation=""$($item.InstallPath)"" " `
-                                    -replace 'container=""', "container=""$($WPFcontainerbox.SelectedValue)"" ") `
+                    (($scriptContent) -replace 'weburl=""', "weburl=""https://$($WPFstaccbox.SelectedValue).blob.core.windows.net/$($WPFcontainerbox.SelectedValue)/$($item.FileName)"" " `
+                                    -replace 'appname=""', "appname=""$($item.AppName)"" " `
+                                    -replace 'app=""', "app=""$($item.App)"" " `
+                                    -replace 'logandmetadir=""', "logandmetadir=""/Library/Logs/Microsoft/IntuneScripts/MACLAT-install$($item.AppName)"" " `
+                                    -replace 'processpath=""', "processpath=""$($item.ProcessPath)"" " `
+                                    -replace 'terminateprocess=""', "terminateprocess=""$($item.TerminateProcess)"" " `
+                                    -replace 'autoupdate=""', "autoupdate=""$($item.Autoupdate)"" ") `
                                     | Set-Content -Path ".\Scripts\$scriptName"
 
                     }
@@ -1180,9 +1228,21 @@ $WPFaddpackage.Add_Click({
                     break
                 }
 
+                #Check if script already exists
+
+                $getScriptRequest = Invoke-MGGraphRequest -Method GET -Uri "https://graph.microsoft.com/beta/deviceManagement/deviceShellScripts?`$filter=startswith(displayName,'$scriptName')"
+
+                if($getScriptRequest.Value){
+                    Write-Host -ForegroundColor Yellow "#-------------------------------------------------------------#"
+                    Write-Host -ForegroundColor Yellow "$($item.AppName) install script already exists, skipping"
+                    Write-Host -ForegroundColor Yellow "#-------------------------------------------------------------#"
+                }
+
+                else{
+
                 try {
                     Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
-                    Write-Host -ForegroundColor DarkGray "Adding $($item.PackageName) install script to MEM"
+                    Write-Host -ForegroundColor DarkGray "Adding $($item.AppName) install script to MEM"
                     Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
                     $RequestBodyObject = @{
                         "@odata.type" = "#microsoft.graph.deviceShellScript"
@@ -1209,7 +1269,7 @@ $WPFaddpackage.Add_Click({
                 try {
                     if ($group){
                         Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
-                        Write-Host -ForegroundColor DarkGray "Assigning $($item.PackageName) to group $($group.DisplayName)"
+                        Write-Host -ForegroundColor DarkGray "Assigning $($item.AppName) to group $($group.DisplayName)"
                         Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
                         
                         $RequestBodyObject = @( 
@@ -1236,8 +1296,8 @@ $WPFaddpackage.Add_Click({
                     Show-WarningMessage -Text $message
                 }
 
-
-            }            
+            }
+        }            
 
         }
 
@@ -1267,16 +1327,24 @@ $WPFupdatepackagebutton.Add_Click({
     $itemsArray = @()  
     $package = Get-ChildItem $browser.FileName
         
-    Get-CFBundleShortVersion -packagePath $package
+    Get-CFBundleName -packagePath $package.FullName
 
-        if ($CFBundleVers){
-            $array = @([pscustomobject]@{PackageName=$package.Name;CFBundleShortVersion=$CFBundleVers;InstallPath="/Applications";FullName=$package.FullName})
-            $itemsArray += $array
-        }
-        else{
-            $array = @([pscustomobject]@{PackageName=$package.Name;CFBundleShortVersion="";InstallPath="/Applications";FullName=$package.FullName})
-            $itemsArray += $array
-        }
+    if ($CFBundleName){
+        $array = @([pscustomobject]@{AppName=$CFBundleName; `
+                                     App="$($CFBundleName).app"; `
+                                     ProcessPath="/Applications/$($CFBundleName).app/Contents/MacOS/$($CFBundleName)"; `
+                                     TerminateProcess="false"; `
+                                     Autoupdate="false"; `
+                                     FullName=$package.FullName; `
+                                     FileName=$package.Name})
+        $itemsArray += $array
+    }
+
+    else{
+        $message = "Unable to get CFBundleName for $($package.Name), skipping package"
+        Write-Host -ForegroundColor Yellow $message
+        Show-WarningMessage -Text $message
+    }
     
     $WPFupdatepackagegrid.ItemsSource = $itemsArray
     $WPFsearchgroup.IsEnabled = $true
@@ -1311,186 +1379,158 @@ $WPFupdatebutton.Add_Click({
     Write-Host -ForegroundColor DarkGray "Updating $($WPFpackagesbox.SelectecValue)"
     Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
 
+    [PSCustomObject]$updateItem = $WPFupdatepackagegrid.Items
     $blob = Get-AzStorageBlob -Context $ctx -Blob $WPFpackagesbox.SelectedValue -Container $WPFcontainerbox.SelectedValue -ErrorAction SilentlyContinue
-    $blobVersion = $blob.ICloudBlob.Metadata.Version
 
-    $scripts = Invoke-MGGraphRequest -Method GET -Uri "https://graph.microsoft.com/beta/deviceManagement/deviceShellScripts/"
-    $scriptToUpdate = $scripts.Value | where {$_.DisplayName -eq "$($blob.Name)-$blobVersion.sh"}
+    $currentScript = Invoke-MGGraphRequest -Method GET -Uri "https://graph.microsoft.com/beta/deviceManagement/deviceShellScripts?`$filter=startswith(displayName,'MACLAT-install$($updateItem.AppName).sh')"
+    $scriptPath = ".\Scripts\$($currentScript.Value.displayName)"
 
-    if(($scriptToUpdate) -and ($blob)) {
-        [PSCustomObject]$updateItem = $WPFupdatepackagegrid.Items
+    if($currentScript){
+        #$scriptToUpdate = Invoke-MGGraphRequest -Method GET -Uri "https://graph.microsoft.com/beta/deviceManagement/deviceShellScripts/$($scriptToUpdate.id)"
+        Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
+        Write-Host -ForegroundColor DarkGray "Adding install script parameters for $($updateItem.AppName)"
+        Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
+
         try{
-            if($WPFunassigncheck.IsChecked -eq $true){
-                Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
-                Write-Host -ForegroundColor DarkGray "Unassigning $($scriptToUpdate.DisplayName)"
-                Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
+            $scriptContent = (Invoke-MGGraphRequest -Method GET -Uri "https://graph.microsoft.com/beta/deviceManagement/deviceShellScripts/$($currentScript.Value.id)").scriptContent
+            $script = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($scriptContent))
+            $script | Out-File $scriptPath
+            $scriptContent = Get-Content $scriptPath
 
-                $RequestBodyObject = @( 
-                    @{deviceManagementScriptAssignments =
-                        @( 
+            (($scriptContent) -replace 'weburl=".*"', "weburl=""https://$($WPFstaccbox.SelectedValue).blob.core.windows.net/$($WPFcontainerbox.SelectedValue)/$($updateItem.FileName)"" " `
+            -replace 'appname=".*"', "appname=""$($updateItem.AppName)"" " `
+            -replace 'app=".*"', "app=""$($updateItem.App)"" " `
+            -replace 'logandmetadir=".*"', "logandmetadir=""/Library/Logs/Microsoft/IntuneScripts/MACLAT-install$($updateItem.AppName)"" " `
+            -replace 'processpath=".*"', "processpath=""$($updateItem.ProcessPath)"" " `
+            -replace 'terminateprocess=".*"', "terminateprocess=""$($updateItem.TerminateProcess)"" " `
+            -replace 'autoupdate=".*"', "autoupdate=""$($updateItem.Autoupdate)"" ") `
+            | Set-Content -Path $scriptPath
 
-                        )
-                    }
-                )
-
-                $body = $RequestBodyObject | ConvertTo-Json -Depth 10
-                $unassign = Invoke-MGGraphRequest -Method POST -Uri "https://graph.microsoft.com/beta/deviceManagement/deviceShellScripts/$($scriptToUpdate.Id)/assign" -Body $body -ContentType 'application/json'
-            }
-
-            elseif ($WPFremovecheck.IsChecked) {
-                Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
-                Write-Host -ForegroundColor DarkGray "Removing script and blob for $($blob.Name)"
-                Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
-
-                $removeScript = Invoke-MGGraphRequest -Method DELETE -Uri "https://graph.microsoft.com/beta/deviceManagement/deviceShellScripts/$($scriptToUpdate.Id)/"
-                $removeBlob =  Remove-AzStorageBlob -Context $ctx -Blob $blob.Name -Container $WPFcontainerbox.SelectedValue
-            }
         }
-
         catch{
-            $message = "Failed to unassign/remove script and blob"
+            $message = "Failed to set script parameters"
             Write-Host -ForegroundColor Yellow $message
             Show-WarningMessage -Text $message
             break
         }
 
-        try {
-            Add-JobTracker -Name "updateLOB" `
-                -JobScript {
-                    $key = Get-AzStorageAccountKey `
-                    -Name $Using:WPFstaccbox.SelectedValue `
-                    -ResourceGroupName $Using:WPFrsgroupbox.SelectedValue `
-                    | select-object -First 1 -ExpandProperty Value
-                    $ctx = New-AzStorageContext `
-                    -StorageAccountName $Using:WPFstaccbox.SelectedValue `
-                    -StorageAccountKey $key
-
-                    $ProgressPreference = "SilentlyContinue"
-
-                    $Metadata = @{"Version" = "$($Using:updateItem.CFBundleShortVersion)"}
-
-                    $upload = Set-AzStorageBlobContent `
-                    -Container $Using:WPFcontainerbox.SelectedValue `
-                    -File $Using:updateItem.FullName `
-                    -Blob $Using:updateItem.PackageName `
-                    -Context $ctx `
-                    -Metadata $Metadata
-                    
-                }`
-                -UpdateScript {
-                    Param($Job)
-                    $results = Receive-Job -Job $Job -Keep
-                    $WPFBadge2.Badge = "Updating"
-                        
-                }`
-                -CompletedScript {
-                    Param($Job)
-                    $results = Receive-Job -Job $Job
-                    $WPFBadge2.Badge = $null
-                    Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
-                    Write-Host -ForegroundColor DarkGray "Upload finished"
-                    Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
-                        
-                }
-            }
-
-            catch{
-                $message = "Failed to create upload job"
-                Write-Host -ForegroundColor Yellow $message
-                Show-WarningMessage -Text $message
-                break
-            }
-    
-        try {
-            Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
-            Write-Host -ForegroundColor DarkGray "Adding install script parameters for $($updateItem.PackageName)"
-            Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
-            $scriptName = "$($updateItem.PackageName)-$($updateItem.CFBundleShortVersion).sh"
-            Copy-Item ".\Scripts\installapp.sh" ".\Scripts\$scriptName" | out-null
-            $scriptContent = Get-Content ".\Scripts\$scriptName" -raw
-                    
-            (($scriptContent) -replace 'baseURL=""', "baseURL=""https://$($WPFstaccbox.SelectedValue).blob.core.windows.net"" " `
-                            -replace 'packageName=""', "packageName=""$($updateItem.PackageName)"" " `
-                            -replace 'CFBundleShortVersion=""', "CFBundleShortVersion=""$($updateItem.CFBundleShortVersion)"" " `
-                            -replace 'installLocation=""', "installLocation=""$($updateItem.InstallPath)"" " `
-                            -replace 'container=""', "container=""$($WPFcontainerbox.SelectedValue)"" ") `
-                            | Set-Content -Path ".\Scripts\$scriptName"
-    
-            }
-            catch {
-                $message = "Failed to set script parameters"
-                Write-Host -ForegroundColor Yellow $message
-                Show-WarningMessage -Text $message
-                break
-            }
-    
-        try {
-            $script = (Get-Content ".\Scripts\$scriptName" -raw) -replace "`r`n","`n"
+        try{
+            $script = (Get-Content $scriptPath -raw) -replace "`r`n","`n"
             $scriptContent = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($script))
         }
-    
         catch{
             $message = "Failed to get script content"
             Write-Host -ForegroundColor Yellow $message
             Show-WarningMessage -Text $message
             break
         }
-    
+
+        if($WPFremovecheck.IsChecked){
+            try{
+                Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
+                Write-Host -ForegroundColor DarkGray "Removing blob $($blob.Name)"
+                Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
+
+                $removeBlob =  Remove-AzStorageBlob -Context $ctx -Blob $blob.Name -Container $WPFcontainerbox.SelectedValue
+            }
+            catch{
+                $message = "Failed to remove blob $($blob.Name)"
+                Write-Host -ForegroundColor Yellow $message
+                Show-WarningMessage -Text $message
+                break
+            }
+        }
+
         try {
-            Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
-            Write-Host -ForegroundColor DarkGray "Adding $($updateItem.PackageName) install script to MEM"
-            Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
+            Write-Host -ForegroundColor DarkGray "#------------------------------------------------------------------#"
+            Write-Host -ForegroundColor DarkGray "Updating $($updateItem.AppName) install script with new parameters in MEM"
+            Write-Host -ForegroundColor DarkGray "#------------------------------------------------------------------#"
             $RequestBodyObject = @{
                 "@odata.type" = "#microsoft.graph.deviceShellScript"
                 retryCount = 3
                 blockExecutionNotifications = $false
-                displayName = $scriptName
+                displayName = $currentScript.Value.displayName
                 scriptContent = $scriptContent
-                fileName = $scriptName
+                fileName = $currentScript.Value.displayName
             }
-    
+
             $body = $RequestBodyObject | ConvertTo-Json
-    
-            $newScriptRequest = Invoke-MGGraphRequest -Method POST -Uri "https://graph.microsoft.com/beta/deviceManagement/deviceShellScripts" -Body $body -ContentType 'application/json'
-            Remove-Item ".\Scripts\$scriptName" -Force
+
+            $updateScriptRequest = Invoke-MGGraphRequest -Method PATCH -Uri "https://graph.microsoft.com/beta/deviceManagement/deviceShellScripts/$($currentScript.Value.id)" -Body $body -ContentType 'application/json'
+            Remove-Item $scriptPath -Force
         }
-    
         catch{
-            $message = "Failed to add scripts to MEM"
+            $message = "Failed to update script in MEM"
             Write-Host -ForegroundColor Yellow $message
             Show-WarningMessage -Text $message
             break
         }
 
+        $staccboxValue = $WPFstaccbox.SelectedValue
+        $rsgroupboxValue = $WPFrsgroupbox.SelectedValue
+        $containerboxvalue = $WPFcontainerbox.SelectedValue
+        $fileName = $updateItem.FullName
+        $blobName = $updateItem.FileName
+
         try {
-            if ($group){
-                Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
-                Write-Host -ForegroundColor DarkGray "Assigning $($updateItem.PackageName) to group $($group.DisplayName)"
-                Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
-                
-                $RequestBodyObject = @( 
-                    @{deviceManagementScriptAssignments =
-                        @( 
-                            @{target = 
-                                @{
-                                    '@odata.type' = "#microsoft.graph.groupAssignmentTarget";
-                                    groupId = $group.Id
-                                }
-                            }
-                        )
-                    }
-                )
+            Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
+            Write-Host -ForegroundColor DarkGray "Uploading $($updateItem.FileName)"
+            Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
 
-                $body = $RequestBodyObject | ConvertTo-Json -Depth 10
-                Invoke-MGGraphRequest -Method POST -Uri "https://graph.microsoft.com/beta/deviceManagement/deviceShellScripts/$($newScriptRequest.id)/assign" -Body $body -ContentType 'application/json'
+                $JobScript = {
+                    param(
+                        $staccboxValue,
+                        $rsgroupboxValue,
+                        $containerboxvalue,
+                        $fileName,
+                        $blobName
+                    )
+                    
+                    $key = Get-AzStorageAccountKey `
+                    -Name $staccboxValue `
+                    -ResourceGroupName $rsgroupboxValue `
+                    | select-object -First 1 -ExpandProperty Value
+                    $ctx = New-AzStorageContext `
+                    -StorageAccountName $staccboxValue `
+                    -StorageAccountKey $key
+
+                    $ProgressPreference = "SilentlyContinue"
+
+                    $upload = Set-AzStorageBlobContent `
+                    -Container $containerboxvalue `
+                    -File $fileName `
+                    -Blob $blobName `
+                    -Context $ctx `
+                    
+                }
+                $UpdateScript = {
+                    Param($Job)
+                    $results = Receive-Job -Job $Job -Keep
+                    $WPFBadge1.Badge = "Uploading"
+                        
+                }
+                $CompletedScript = {
+                    Param($Job)
+                    $results = Receive-Job -Job $Job
+                    $WPFBadge1.Badge = $null
+                    Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
+                    Write-Host -ForegroundColor DarkGray "Upload finished"
+                    Write-Host -ForegroundColor DarkGray "#-------------------------------------------------------------#"
+                        
+                }
+
+                Add-JobTracker -Name "UploadLOB" `
+                -JobScript $JobScript `
+                -UpdateScript $UpdateScript `
+                -CompletedScript $CompletedScript `
+                -ArgumentList $staccboxValue,$rsgroupboxValue,$containerboxvalue,$fileName,$blobName
             }
-        }
-
-        catch{
-            $message = "Failed to assign script"
-            Write-Host -ForegroundColor Yellow $message
-            Show-WarningMessage -Text $message
-        }
+            catch{
+                $message = "Failed to create upload job"
+                Write-Host -ForegroundColor Yellow $message
+                Show-WarningMessage -Text $message
+                break
+            }
 
     }
 
