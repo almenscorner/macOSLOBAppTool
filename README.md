@@ -15,6 +15,8 @@ Using this version, 7-Zip will be required to be installed since it will try to 
 
 The CFBundleName will be used to create strings which will be added to the install script. Note that it will use the CFBundleName to create the "processpath" variable string which is used to terminate the process when updating if you choose to do so. Some applications does not use the same name for the process, for example Firefox CFBundleName is "Firefox", but the process path is /Applications/Firefox.app/Contents/MacOS/firefox with lower case. Default will be /Applications but your app might have another path. It's important to review and update the apps info in the grid.
 
+For guidance on what the parameters used means, see [this link](https://techcommunity.microsoft.com/t5/intune-customer-success/deploying-macos-apps-with-the-intune-scripting-agent/ba-p/2298072).
+
 Before using, keep in mind that this is an early version of this tool. Test **thoroughly**.
 
 - [Planned features](#planned-features)
