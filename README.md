@@ -84,6 +84,7 @@ If more than one storage account exists, you will be asked to pick one to create
 - Removed "unassign" button from Update tab
 - Changed grid columns to align with Microsoft's shell script
 - Check to see if more than one storage accounts is returned
+
 **Version 1.04.07.01 2021-04-07**
 - Added update functionality
 - Added button badges when uploading/updating
