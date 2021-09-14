@@ -9,15 +9,11 @@ If you have a .dmg package you would like to publish in MEM, you would have to c
 
 With the above limitations in mind I decided to build a tool which can deploy virtually any app using the Microsoft Intune Agent to run scripts and Azure Storage Account to build a app repository.
 
-When running the tool, the app won't be wrapped but instead uploads to an Azure blob and a macOS shell script is created in MEM. When the script runs on a mac, it curls the package from the blob and if it's a DMG, mounts and installs or if it's a PKG, installs directly. The blob downloads to the currently logged on users Downloads folder. After the installation is complete, the package is removed from Downloads.
+When running the tool, the app won't be wrapped but instead uploads to an Azure blob and a macOS shell script is created in MEM. The tool now uses Microsoft's shell script for installing applications, this update introduces huge improvements to logging and update functionality.
 
-A metadata tag is added to the blob with the format "Version: {CFBundleShortVersion}" to keep track of uploaded versions.
+Using this version, 7-Zip will be required to be installed since it will try to grab the CFBundleName from the Info.plist, if it fails, the package will be skipped.
 
-If 7-zip is installed on the device running this tool, the script will try to automatically extract the CFBundleShortVersion
-from the Info.plist file, it is also possible to enter the version manually.
-
-Per default, the install location is set to /Applications. If needed this can be changed. This path and CFBundleShortVersion is needed to detect if
-the latest version of the app is already installed on the mac.
+The CFBundleName will be used to create strings which will be added to the install script. Note that it will use the CFBundleName to create the "processpath" variable string which is used to terminate the process when updating if you choose to do so. Some applications does not use the same name for the process, for example Firefox CFBundleName is "Firefox", but the process path is /Applications/Firefox.app/Contents/MacOS/firefox with lower case. Default will be /Applications but your app might have another path. It's important to review and update the apps info in the grid.
 
 Before using, keep in mind that this is an early version of this tool. Test **thoroughly**.
 
@@ -25,17 +21,15 @@ Before using, keep in mind that this is an early version of this tool. Test **th
 - [Pre-requisites](#pre-requisites)
 - [Powershell versions](#powershell-versions)
 - [Usage](#usage)
-- [In action](#in-action)
 - [Screenshots](#screenshots)
   * [App selection](#app-selection)
   * [Console output](#console-output)
   * [Azure blob](#azure-blob)
   * [MEM Shell script](#mem-shell-script)
-- [Limitations](#limitations)
 - [Changelog](#changelog)
 
 ## Planned features
-- Change install script to Microsoft's shell script for enhanced logging and functionality
+- ~~Change install script to Microsoft's shell script for enhanced logging and functionality~~
 - ~~Ability to assign app from the WPF~~
 - ~~Handle updating apps from WPF~~
 - ~~Get CFBundleShortVersion from .pkg packages using 7-zip~~
@@ -45,6 +39,7 @@ Before using, keep in mind that this is an early version of this tool. Test **th
 To use this tool you need a couple of moduels installed
 - Az.Storage
 - Microsoft.Graph.Authentication
+- 7-Zip
 
 Also, a storage account must already be created. Using this tool it is assumed that the container is publicly available.
 
@@ -61,29 +56,34 @@ Before use, you might have to unblock the files.
 Launch the script by typing:
 ```.\path\to\macoslobapptool.ps1```
 
-## In action
-![macOSMLATinstall](https://user-images.githubusercontent.com/78877636/114020912-5e40db80-9870-11eb-8f22-a899143c9e01.gif)
-![MLATupload](https://user-images.githubusercontent.com/78877636/114020893-5a14be00-9870-11eb-9b46-792426df44b2.gif)
-
 ## Screenshots
 ### Light/Dark mode
-![mlatnewlight](https://user-images.githubusercontent.com/78877636/113880302-a9e57d80-97bb-11eb-9874-b5c690aff774.png)![mlatnewdark](https://user-images.githubusercontent.com/78877636/113880345-b4a01280-97bb-11eb-87bb-3ce2f1c2b828.png)
-![mlatupdatelight](https://user-images.githubusercontent.com/78877636/113881566-d5b53300-97bc-11eb-9baa-092c4964a874.png)![mlatupdatedark](https://user-images.githubusercontent.com/78877636/113880700-fdf06200-97bb-11eb-9ee2-069902bc6dcf.png)
+![newLight](https://user-images.githubusercontent.com/78877636/133284016-522960c3-497d-486c-aad8-0f52b74c7456.png)
+![newDark](https://user-images.githubusercontent.com/78877636/133284081-ae445911-6797-484e-88bf-4fcea781b24a.png)
+![updateLight](https://user-images.githubusercontent.com/78877636/133284119-0c394809-e1e4-41b4-830e-55d60babe887.png)
+![updateDark](https://user-images.githubusercontent.com/78877636/133284131-35aa5a32-f9df-47fe-8ffb-7387d18291cf.png)
 ### Badges
-![mlatuploadbadge](https://user-images.githubusercontent.com/78877636/113881134-6fc8ab80-97bc-11eb-884d-64b36469337a.png)![mlatupdatebadge](https://user-images.githubusercontent.com/78877636/113881148-748d5f80-97bc-11eb-9c4d-44e988ecd375.png)
+![mlatuploadbadge](https://user-images.githubusercontent.com/78877636/113881134-6fc8ab80-97bc-11eb-884d-64b36469337a.png)
+![mlatupdatebadge](https://user-images.githubusercontent.com/78877636/113881148-748d5f80-97bc-11eb-9c4d-44e988ecd375.png)
 ### Warning popup
 ![mlatwarning](https://user-images.githubusercontent.com/78877636/113881202-840ca880-97bc-11eb-8ec5-db85c69d4c76.png)
 ### Console output
-![mlatconsole](https://user-images.githubusercontent.com/78877636/113880740-0779ca00-97bc-11eb-9c2d-da0a71d53563.png)
+![consoleOutput](https://user-images.githubusercontent.com/78877636/133284201-9da8468f-8ea2-4ff7-9ad5-d491a7a9aef5.png)
+
+If more than one storage account exists, you will be asked to pick one to create a new storage context
+![stSelection](https://user-images.githubusercontent.com/78877636/133284280-5d1175b3-5e7b-404e-aa24-10dd366f530b.png)
 ### Azure blob
 ![image](https://user-images.githubusercontent.com/78877636/113022390-d75f7500-9184-11eb-8f2f-9dff4403213a.png)
 ### MEM Shell script
-![image](https://user-images.githubusercontent.com/78877636/113022608-12fa3f00-9185-11eb-973e-99f7f4df46e0.png)
-
-## Limitations
-- DMGs that contains an installer.app is not supported. Have not figured out how an install of these types of installers would work from a script.
+![memScript](https://user-images.githubusercontent.com/78877636/133284333-30152e5d-461e-4083-857d-ee9f662e75ce.png)
 
 ## Changelog
+**Version 2.0 2021-09-14**
+- Install script changed to Microsoft's shell script
+- When updating, the script that already exists for the app will be updated in MEM, i.e. it won't be unassigned or deleted
+- Removed "unassign" button from Update tab
+- Changed grid columns to align with Microsoft's shell script
+- Check to see if more than one storage accounts is returned
 **Version 1.04.07.01 2021-04-07**
 - Added update functionality
 - Added button badges when uploading/updating
